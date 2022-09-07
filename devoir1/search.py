@@ -1,3 +1,4 @@
+from __future__ import annotations
 # search.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
@@ -18,6 +19,9 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+from typing import Any, List, Literal, Optional
+from game import Directions
+from dataclasses import dataclass
 
 class SearchProblem:
     """
@@ -28,7 +32,7 @@ class SearchProblem:
     """
 
     def getStartState(self):
-        """
+        """util.raiseNotDefined()
         Returns the start state for the search problem.
         """
         util.raiseNotDefined()
@@ -61,6 +65,34 @@ class SearchProblem:
         """
         util.raiseNotDefined()
 
+Direction = Literal['NORTH', 'SOUTH', 'EAST', 'WEST', 'STOP']
+
+@dataclass(eq=False)
+class Node:
+    state: Any
+    previous: Optional[Node] = None
+    direction: Optional[Direction] = None
+
+    @property
+    def path(self: Node) -> List[Direction]:
+        if self.previous is None:
+            return []
+        return self.previous.path + [self.direction]
+
+    def __eq__(self, __o: Node) -> bool:
+        return self.state == __o.state
+
+    def __hash__(self) -> int:
+        return hash(self.state)
+
+@dataclass(eq=False)
+class PNode(Node):
+    """
+    Node used for A* and UCS
+    """
+    previous: Optional[PNode] = None # overwrite
+    cost: int = 0 # Cost from the start
+
 
 def tinyMazeSearch(problem):
     """
@@ -82,37 +114,53 @@ def depthFirstSearch(problem):
     To get started, you might want to try some of these simple commands to
     understand the search problem that is being passed in:
 
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
+    visited = set() # visited nodes
+    stack = util.Stack()
+    stack.push(Node(problem.getStartState()))
 
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 1 ICI
-    '''
+    while not (stack.isEmpty() or problem.isGoalState((node := stack.pop()).state)):
+        if node in visited:
+            continue
+        visited.add(node)
+        for state, direction, _, in problem.getSuccessors(node.state):
+            stack.push(Node(state, node, direction))
 
-    util.raiseNotDefined()
+    return node.path if problem.isGoalState(node.state) else []
 
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
 
+    visited = set() # visited nodes
+    q = util.Queue()
+    q.push(Node(problem.getStartState()))
 
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 2 ICI
-    '''
+    while not (q.isEmpty() or problem.isGoalState((node := q.pop()).state)):
+        if node in visited:
+            continue
+        visited.add(node)
+        for state, direction, _, in problem.getSuccessors(node.state):
+            q.push(Node(state, node, direction))
 
-    util.raiseNotDefined()
-
+    return node.path if problem.isGoalState(node.state) else []
+        
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
+    
+    visited = set()
+    queue = util.PriorityQueue()
+    queue.push(PNode(problem.getStartState()), 0)
 
+    while not (queue.isEmpty() or problem.isGoalState((node := queue.pop()).state)):
+        if node in visited:
+            continue
+        visited.add(node)
+        for state, direction, cost in problem.getSuccessors(node.state):
+            next_node = PNode(state, node, direction, node.cost + cost)
+            queue.push(next_node, next_node.cost)
 
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 3 ICI
-    '''
-
-    util.raiseNotDefined()
+    return node.path if problem.isGoalState(node.state) else []
 
 def nullHeuristic(state, problem=None):
     """
@@ -123,11 +171,19 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 4 ICI
-    '''
+    visited = set()
+    queue = util.PriorityQueue()
+    queue.push(PNode(problem.getStartState()), heuristic(problem.getStartState(), problem))
 
-    util.raiseNotDefined()
+    while not (queue.isEmpty() or problem.isGoalState((node := queue.pop()).state)):
+        if node in visited:
+            continue
+        visited.add(node)
+        for state, direction, cost in problem.getSuccessors(node.state):
+            next_node = PNode(state, node, direction, node.cost + cost)
+            queue.push(next_node, next_node.cost + heuristic(state, problem))
+    
+    return node.path if problem.isGoalState(node.state) else []
 
 
 # Abbreviations
