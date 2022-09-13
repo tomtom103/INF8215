@@ -20,7 +20,6 @@ Pacman agents (in searchAgents.py).
 
 import util
 from typing import Any, List, Literal, Optional
-from game import Directions
 from dataclasses import dataclass
 
 class SearchProblem:

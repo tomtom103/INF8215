@@ -37,7 +37,6 @@ description for details.
 Good luck and happy searching!
 """
 
-from msilib.schema import TypeLib
 from game import Directions
 from game import Agent
 from game import Actions
@@ -271,6 +270,7 @@ def euclideanHeuristic(position, problem, info={}):
 # This portion is incomplete.  Time to write code!  #
 #####################################################
 
+CornerState = Tuple[Tuple[int, int], Tuple[bool, bool, bool, bool]]
 class CornersProblem(search.SearchProblem):
     """
     This search problem finds paths through all four corners of a layout.
@@ -293,9 +293,10 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
 
-        self.startState = tuple(
+        # Tuple containing the current position and whether or not a corner has been visited
+        self.startState: CornerState = (
             self.startingPosition,
-            (startingGameState.hasFood(*corner) for corner in self.corners)
+            tuple(startingGameState.hasFood(*corner) for corner in self.corners)
         )
 
     def getStartState(self):
@@ -311,7 +312,7 @@ class CornersProblem(search.SearchProblem):
         """
         return not any(state[1])
 
-    def getSuccessors(self, state):
+    def getSuccessors(self, state: CornerState):
         """
         Returns successor states, the actions they require, and a cost of 1.
 
@@ -335,11 +336,11 @@ class CornersProblem(search.SearchProblem):
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
                 newPosition = (nextx, nexty)
-                for i in range(4):
-                    if ((nextx, nexty) == self.corners[i]): # This is a corner
-                        state[1][i] = False #deactivate a corner
-
-                successors.append(tuple(tuple(newPosition, state[1]), action, 1))
+                visitedCorners = tuple(
+                    state[1][i] and self.corners[i] != newPosition for i in range(4)
+                )
+                nextState = (newPosition, visitedCorners)
+                successors.append((nextState, action, 1))
         
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -357,7 +358,7 @@ class CornersProblem(search.SearchProblem):
             if self.walls[x][y]: return 999999
         return len(actions)
 
-def cornersHeuristic(state, problem):
+def cornersHeuristic(state: CornerState, problem):
     """
     A heuristic for the CornersProblem that you defined.
 
@@ -373,10 +374,10 @@ def cornersHeuristic(state, problem):
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 6 ICI
-    '''
+    if problem.isGoalState(state):
+        return 0
     
+    # TODO: implement this heuristic!
     return 0
 
 class AStarCornersAgent(SearchAgent):
