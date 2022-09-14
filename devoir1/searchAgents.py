@@ -40,10 +40,14 @@ Good luck and happy searching!
 from game import Directions
 from game import Agent
 from game import Actions
+from game import Grid
 import util
 import time
 import search
-from typing import Any, NamedTuple, Tuple
+from typing import Any, Tuple
+from dataclasses import dataclass
+import itertools
+import functools
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -260,6 +264,12 @@ def manhattanHeuristic(position, problem, info={}):
     xy2 = problem.goal
     return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
 
+def chebyshevHeuristic(position, problem, info={}):
+    "The Chebyshev distance heuristic for a PositionSearchProblem"
+    xy1 = position
+    xy2 = problem.goal
+    return max(abs(xy1[0] - xy2[0]), abs(xy1[1] - xy2[1]))
+
 def euclideanHeuristic(position, problem, info={}):
     "The Euclidean distance heuristic for a PositionSearchProblem"
     xy1 = position
@@ -310,6 +320,7 @@ class CornersProblem(search.SearchProblem):
         """
         Returns whether this search state is a goal state of the problem.
         """
+        # We are at the goal state if all of the food has been eaten
         return not any(state[1])
 
     def getSuccessors(self, state: CornerState):
@@ -322,20 +333,14 @@ class CornersProblem(search.SearchProblem):
             state, 'action' is the action required to get there, and 'stepCost'
             is the incremental cost of expanding to that successor
         """
-
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
             x, y = state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
                 newPosition = (nextx, nexty)
+                # If we are at a corner, we mark the food as eaten
                 visitedCorners = tuple(
                     state[1][i] and self.corners[i] != newPosition for i in range(4)
                 )
@@ -358,7 +363,7 @@ class CornersProblem(search.SearchProblem):
             if self.walls[x][y]: return 999999
         return len(actions)
 
-def cornersHeuristic(state: CornerState, problem):
+def cornersHeuristic(state: CornerState, problem: CornersProblem):
     """
     A heuristic for the CornersProblem that you defined.
 
@@ -372,13 +377,12 @@ def cornersHeuristic(state: CornerState, problem):
     admissible (as well as consistent).
     """
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     if problem.isGoalState(state):
         return 0
     
-    # TODO: implement this heuristic!
-    return 0
+    # Manhattan distance to the furthest unvisited corner
+    return max(util.manhattanDistance(state[0], corner) for idx, corner in enumerate(corners) if state[1][idx])
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -442,7 +446,12 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchFunction = lambda prob: search.aStarSearch(prob, foodHeuristic)
         self.searchType = FoodSearchProblem
 
-def foodHeuristic(state, problem: FoodSearchProblem):
+FoodState = Tuple[Tuple[int, int], Grid]
+
+
+# Heuristic implementation inspired by:
+# https://medium.com/@robertgrosse/solving-the-traveling-pacman-problem-39c0872428bc
+def foodHeuristic(state: FoodState, problem: FoodSearchProblem):
     """
     Your heuristic for the FoodSearchProblem goes here.
 
@@ -472,10 +481,82 @@ def foodHeuristic(state, problem: FoodSearchProblem):
     """
     position, foodGrid = state
 
-    '''
-        INSÉREZ VOTRE SOLUTION À LA QUESTION 7 ICI
-    '''
+    if problem.isGoalState(state):
+        return 0
 
+    maxDistance, food1, food2 = -1, (0, 0), (0, 0)
+    for pos1, pos2 in itertools.combinations(foodGrid.asList(), 2):
+        distance = util.manhattanDistance(pos1, pos2)
+        if distance > maxDistance:
+            maxDistance, food1, food2 = distance, pos1, pos2
 
-    return 0
+    if maxDistance == -1:
+        return util.manhattanDistance(foodGrid.asList()[0], position)
 
+    # Real distance between the two furthest foods
+    distance_between_two_foods = getRealDistance(problem.walls, food1, food2)
+    # Minimum distance between pacman and both pieces of food
+    distance_to_food = min(util.manhattanDistance(position, food1), util.manhattanDistance(position, food2))
+
+    return distance_between_two_foods + distance_to_food
+
+@dataclass(eq=False)
+class BlackBox:
+    """
+    Wrapper class used to hide variables from the lru cache.
+    """
+    contents: Any
+
+    def __eq__(self, other):
+        # Return True for Blackbox variables to make sure the black box doesn't cause cache invalidation
+        return isinstance(other, type(self))
+
+    def __hash__(self) -> int:
+        # Always return the same hash to make sure the black box doesn't cause cache invalidation
+        return hash(type(self))
+
+@functools.lru_cache(maxsize=None)
+def _getRealDistance(blackbox: BlackBox, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> int:
+    """
+    Cached implementation of the real distance between two food positions.
+    The distance is calculated using A* search with the manhattan heuristic and stored in a lru cache.
+
+    :param blackbox: Black box containing the walls of the maze
+    """
+    walls = blackbox.contents
+    problem = AStarSubSearchProblem(pos1, pos2, walls)
+    # Since the cost of each action is 1, the cost of the path is the same as the length of the path
+    return len(search.aStarSearch(problem, heuristic=manhattanHeuristic))
+
+def getRealDistance(walls, pos1, pos2):
+    """
+    Returns the real distance between two food positions using A* search with the manhattan heuristic.
+    The result is cached to avoid recalculating the same distance multiple times.
+    """
+    return _getRealDistance(BlackBox((walls)), pos1, pos2)
+
+class AStarSubSearchProblem:
+    """
+    A* search problem allowing us to calculate the real distance between two food positions.
+    """
+    def __init__(self, start, goal, walls):
+        self.start = start
+        self.goal = goal
+        self.walls = walls
+
+    def getStartState(self):
+        return self.start
+
+    def isGoalState(self, state):
+        return state == self.goal
+
+    def getSuccessors(self, state):
+        "Returns successor states, the actions they require, and a cost of 1."
+        successors = []
+        for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            x, y = state
+            dx, dy = Actions.directionToVector(direction)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                successors.append(((nextx, nexty), direction, 1))
+        return successors

@@ -74,6 +74,9 @@ class Node:
 
     @property
     def path(self: Node) -> List[Direction]:
+        """
+        Returns the direction taken to arrive at this node
+        """
         if self.previous is None:
             return []
         return self.previous.path + [self.direction]
@@ -85,11 +88,12 @@ class Node:
         return hash(self.state)
 
 @dataclass(eq=False)
-class PNode(Node):
+class CostNode(Node):
     """
     Node used for A* and UCS
+    This node is the same as the one previously declared except we add a cost field
     """
-    previous: Optional[PNode] = None # overwrite
+    previous: Optional[CostNode] = None # overwrite
     cost: int = 0 # Cost from the start
 
 
@@ -114,52 +118,61 @@ def depthFirstSearch(problem):
     understand the search problem that is being passed in:
 
     """
-    visited = set() # visited nodes
+    visited = set()
     stack = util.Stack()
     stack.push(Node(problem.getStartState()))
 
-    while not (stack.isEmpty() or problem.isGoalState((node := stack.pop()).state)):
+    while not stack.isEmpty():
+        node: Node = stack.pop()
+        if problem.isGoalState(node.state):
+            return node.path
         if node in visited:
             continue
         visited.add(node)
         for state, direction, _, in problem.getSuccessors(node.state):
             stack.push(Node(state, node, direction))
 
-    return node.path if problem.isGoalState(node.state) else []
+    return []
 
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
 
-    visited = set() # visited nodes
-    q = util.Queue()
-    q.push(Node(problem.getStartState()))
+    visited = set()
+    queue = util.Queue()
+    queue.push(Node(problem.getStartState()))
 
-    while not (q.isEmpty() or problem.isGoalState((node := q.pop()).state)):
+    while not queue.isEmpty():
+        node = queue.pop()
+        if problem.isGoalState(node.state):
+            return node.path
         if node in visited:
             continue
         visited.add(node)
         for state, direction, _, in problem.getSuccessors(node.state):
-            q.push(Node(state, node, direction))
+            queue.push(Node(state, node, direction))
 
-    return node.path if problem.isGoalState(node.state) else []
+    return []
         
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     
     visited = set()
     queue = util.PriorityQueue()
-    queue.push(PNode(problem.getStartState()), 0)
+    queue.push(CostNode(problem.getStartState()), 0)
 
-    while not (queue.isEmpty() or problem.isGoalState((node := queue.pop()).state)):
+    while not queue.isEmpty():
+        node = queue.pop()
+        if problem.isGoalState(node.state):
+            return node.path
         if node in visited:
             continue
         visited.add(node)
         for state, direction, cost in problem.getSuccessors(node.state):
-            next_node = PNode(state, node, direction, node.cost + cost)
+            next_node = CostNode(state, node, direction, node.cost + cost)
             queue.push(next_node, next_node.cost)
 
-    return node.path if problem.isGoalState(node.state) else []
+    return []
 
 def nullHeuristic(state, problem=None):
     """
@@ -172,17 +185,20 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     visited = set()
     queue = util.PriorityQueue()
-    queue.push(PNode(problem.getStartState()), heuristic(problem.getStartState(), problem))
+    queue.push(CostNode(problem.getStartState()), heuristic(problem.getStartState(), problem))
 
-    while not (queue.isEmpty() or problem.isGoalState((node := queue.pop()).state)):
+    while not queue.isEmpty():
+        node = queue.pop()
+        if problem.isGoalState(node.state):
+            return node.path
         if node in visited:
             continue
         visited.add(node)
         for state, direction, cost in problem.getSuccessors(node.state):
-            next_node = PNode(state, node, direction, node.cost + cost)
+            next_node = CostNode(state, node, direction, node.cost + cost)
             queue.push(next_node, next_node.cost + heuristic(state, problem))
     
-    return node.path if problem.isGoalState(node.state) else []
+    return []
 
 
 # Abbreviations
