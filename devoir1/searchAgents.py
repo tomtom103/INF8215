@@ -1,3 +1,8 @@
+"""
+Thomas Caron - 1944066
+Slimane Boussafeur - 2017001
+"""
+
 # searchAgents.py
 # ---------------
 # Licensing Information:  You are free to use or extend these projects for
@@ -551,7 +556,6 @@ class AStarSubSearchProblem:
         return state == self.goal
 
     def getSuccessors(self, state):
-        "Returns successor states, the actions they require, and a cost of 1."
         successors = []
         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             x, y = state
