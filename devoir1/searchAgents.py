@@ -501,6 +501,7 @@ def foodHeuristic(state: FoodState, problem: FoodSearchProblem):
     # Real distance between the two furthest foods
     distance_between_two_foods = getRealDistance(problem.walls, food1, food2)
     # Minimum real distance between pacman and both pieces of food
+    # Using A* might be too expensive in a large map with a lot of food, but it's the most optimal solution here
     distance_to_food = min(getRealDistance(problem.walls, position, food1), getRealDistance(problem.walls, position, food2))
 
     return distance_between_two_foods + distance_to_food
