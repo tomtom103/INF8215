@@ -454,7 +454,7 @@ class AStarFoodSearchAgent(SearchAgent):
 FoodState = Tuple[Tuple[int, int], Grid]
 
 
-# Heuristic implementation inspired by:
+# Heuristic implementation somewhat inspired by:
 # https://medium.com/@robertgrosse/solving-the-traveling-pacman-problem-39c0872428bc
 def foodHeuristic(state: FoodState, problem: FoodSearchProblem):
     """
@@ -500,8 +500,8 @@ def foodHeuristic(state: FoodState, problem: FoodSearchProblem):
 
     # Real distance between the two furthest foods
     distance_between_two_foods = getRealDistance(problem.walls, food1, food2)
-    # Minimum distance between pacman and both pieces of food
-    distance_to_food = min(util.manhattanDistance(position, food1), util.manhattanDistance(position, food2))
+    # Minimum real distance between pacman and both pieces of food
+    distance_to_food = min(getRealDistance(problem.walls, position, food1), getRealDistance(problem.walls, position, food2))
 
     return distance_between_two_foods + distance_to_food
 

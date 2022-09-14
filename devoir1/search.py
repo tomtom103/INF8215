@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Thomas Caron - 1944066
 Slimane Boussafeur - 2017001
@@ -22,7 +23,6 @@ In search.py, you will implement generic search algorithms which are called by
 Pacman agents (in searchAgents.py).
 """
 
-from __future__ import annotations
 import util
 from typing import Any, List, Literal, Optional
 from dataclasses import dataclass
