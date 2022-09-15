@@ -261,11 +261,15 @@ class Agent:
         """
         pass
 
+from socketserver import ThreadingMixIn
+from xmlrpc.server import SimpleXMLRPCServer
+
+class SimpleThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
+    pass
 
 def serve_agent(agent, address, port):
     """Serve agent on specified bind address and port number."""
-    from xmlrpc.server import SimpleXMLRPCServer
-    server = SimpleXMLRPCServer((address, port), allow_none=True)
+    server = SimpleThreadedXMLRPCServer((address, port), allow_none=True)
     server.register_instance(agent)
     print("Listening on ", address, ":", port, sep="")
     try:
