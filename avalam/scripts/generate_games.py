@@ -1,5 +1,4 @@
-from asyncio import as_completed
-from game import Trace, connect_agent, Game, Board
+from ..game import Trace, connect_agent, Game, Board
 import pickle
 from queue import Queue
 from threading import Thread

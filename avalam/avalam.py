@@ -1,3 +1,4 @@
+from __future__ import annotations
 # -*- coding: utf-8 -*-
 """
 Common definitions for the Avalam players.
@@ -17,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from typing import List, Optional, Tuple
 
 PLAYER1 = 1
 PLAYER2 = -1
@@ -236,7 +239,12 @@ class Agent:
 
     """Interface for an Arlecchino agent"""
 
-    def initialize(self, percepts, players, time_left):
+    def initialize(
+        self, 
+        percepts: List[List[int]], 
+        players: List[Agent], 
+        time_left: Optional[float] = None
+    ) -> None:
         """Begin a new game.
         The computation done here also counts in the time credit.
         Arguments:
@@ -249,7 +257,13 @@ class Agent:
         """
         pass
 
-    def play(self, percepts, player, step, time_left):
+    def play(
+        self, 
+        percepts: List[List[int]], 
+        player: Agent, 
+        step: int, 
+        time_left: Optional[float] = None
+    ) -> Tuple[int, int, int, int]:
         """Play and return an action.
         Arguments:
         percepts -- the current board in a form that can be fed to the Board
