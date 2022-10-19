@@ -1,0 +1,24 @@
+PROJECT = { A, B, C, D};
+
+P = 3;
+
+travel_costs = [| 0, 1, 1, 1
+                | 1, 0, 1, 1
+                | 1, 1, 0, 1
+                | 1, 1, 1, 0|];
+                                         
+project_with_precedences = {B};
+project_must_be_done = {D};
+
+
+precedences = [| ING, ING, ING
+               | ARCHI, ING, ELEC
+               | ING, ING, ING
+               | ING, ING, ING|];
+               
+revenu = [5, 5, 5, 1];
+
+
+
+
+                                          
