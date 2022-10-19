@@ -19,10 +19,12 @@ array[ATTRACTION] of int: cost;
 var set of ATTRACTION: x;
 
 % Coût total
-var int: tot_cost;
+var int: tot_cost = sum([cost[i] | i in x]);
 
 % Constaints
+constraint card(x) >= l /\ card(x) <= u;
 
+constraint sum([pair_attraction[i, j] | i, j in x where i < j]) >= m;
 
 solve minimize tot_cost;
 
