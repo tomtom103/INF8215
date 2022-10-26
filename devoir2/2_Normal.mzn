@@ -21,6 +21,29 @@ array[1..h, 1..v] of var int: x;
 % Le coût total
 var int: tot_cost;
 
+%% Constraints
+
+% Il ne doit pas avoir plus de m maisons dans une meme case
+constraint forall([x[horiz, vert] <= m | horiz in 1..h, vert in 1..v]);
+
+% Il ne faut pas depasser la demande pour chaque ligne
+constraint forall([sum([x[horiz, vert] | vert in 1..v]) >= demand_per_h[horiz] | horiz in 1..h]);
+constraint forall([sum([x[horiz, vert] | horiz in 1..h]) >= demand_per_v[vert] | vert in 1..v]);
+
+constraint tot_cost = sum(
+  [
+  if x[horiz, vert] > 0 then 
+    cost_per_permit[horiz, vert] + x[horiz, vert] * cost_per_house[horiz, vert] 
+  else 0 
+  endif 
+  | horiz in 1..h, vert in 1..v
+  ]
+);
+
+%% Solve
+
+solve minimize tot_cost;
+
 output
   
   ["Configuration : \n"]  
