@@ -12,13 +12,13 @@ constraint chiffres[2] > chiffres[4];
 constraint chiffres[4] + chiffres[3] + chiffres[2] + chiffres[1] > 15;
 
 % Solver
-solve minimize chiffres[3] * chiffres[2] * chiffres[1];
+solve minimize chiffres[4] * chiffres[3] * chiffres[2];
 
 output [
   show(nombre)
 ];
 
 % Result
-% chiffres = [6, 5, 1, 4]
-% nombre = 6514
+% chiffres = [9,4,1,2]
+% nombre = 9412
 
