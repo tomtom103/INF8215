@@ -20,8 +20,24 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 import math
 from avalam import *
 from typing import Callable, Tuple, List, Optional
+import numpy as np
 
-Action = Tuple[int, int, int, int] 
+Action = Tuple[int, int, int, int]
+
+def euclidian_distance(x1: int, x2: int, y1: int, y2: int) -> int:
+    return round(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
+
+
+def player_scores(board: Board, player: int) -> Tuple[int, int]:
+    my_score = 0
+    other_score = 0
+    flat_arr = [item for sublist in board.m for item in sublist if item != 0]
+    for value in flat_arr:
+        if value * player > 0:
+            my_score += abs(value)
+        else:
+            other_score += abs(value)
+    return (my_score, other_score)
 
 class MinMaxAgent(Agent):
 
@@ -48,7 +64,7 @@ class MinMaxAgent(Agent):
     def play(
         self, 
         percepts: List[List[int]], 
-        player: Agent, 
+        player: int, 
         step: int, 
         time_left: Optional[float] = None
     ) -> Action:
@@ -74,58 +90,87 @@ class MinMaxAgent(Agent):
         board = dict_to_board(percepts)
         print("Board: ", board)
 
-        next_action = self.alpha_beta_search(board, self.cutoff, self.heuristic)[1]
+        next_action = self.alpha_beta_search(board, player, time_left, self.cutoff, self.heuristic)[1]
         print("Action played: ", next_action)
         return next_action
 
-    def cutoff(self, depth: int) -> bool:
-        return depth > 1
+    def cutoff(self, depth: int, board: Board, player: int, time_left: Optional[float]) -> bool:
+        if time_left is not None and time_left == 0:
+            return True
+        return depth > 2
 
-    def heuristic(self, board: Board) -> int:
-        # isolation_score = self._iso_score(board)
-        isolation_score = 0
-        return isolation_score + board.get_score()
 
-    def _iso_score(self, board: Board) -> int:
+    def heuristic(self, board: Board, player: int) -> int:
+        return self._pairs_heuristic(board, player)
+
+    def _pairs_heuristic(self, board: Board, player: int) -> int:
         score = 0
-        for action in board.get_actions():
-            if board.is_action_valid(action):
-                i, j, _, _ = action
-                neighbors = list(board.get_tower_actions(i, j))
-                N = len(neighbors)
-                if N % 2 == 0:
-                    continue
-                ours = 0
-                theirs = 0
-                for neighbor in neighbors:
-                    _, _, k, l = neighbor
-                    if board.m[k][l] > 0:
-                        theirs += 1
-                    elif board.m[k][l] < 0:
-                        ours += 1
-                
-                if ours > theirs:
-                    score += 1 / N
-                else:
-                    score -= 1 / N
+        clone = board.clone()
+        for action in clone.get_actions():
+            if not clone.is_action_valid(action):
+                continue
+            temp = clone.play_action(action)
+            _, pre_score = player_scores(clone, player)
+            _, next_score = player_scores(temp, player)
+            if next_score - pre_score > 0:
+                score += 5
+            x, y, dx, dy = action
+            origin, dest = clone.m[x][y], clone.m[dx][dy]
+
+            # Enemy has tower of 4 and we want to top it off
+            if origin * dest == -4 and origin == player:
+                return 10**6
+            
+            # Complete our own tower if possible (save our own tower) (dont return)
+
+            # 2v3, 3v2 ??
+            
+            if (origin * player < 0) and (dest * player < 0):
+                score += 5
+                if abs(origin) + abs(dest) == 2:
+                    score += 30
+                    distance = euclidian_distance(dx, 5, dy, 5)
+                    # Group furthest towers together
+                    score += distance ** 100
+                elif 3 <= abs(origin) + abs(dest) < 5:
+                    score += 100
+
         return score
-                    
+
+    def _has_remaining_pairs(self, board: Board, player: int) -> bool:
+        clone = board.clone()
+        for action in clone.get_actions():
+            if not clone.is_action_valid(action):
+                continue
+            x, y, dx, dy = action
+            origin, dest = clone.m[x][y], clone.m[dx][dy]
+            if (
+                origin * player < 0 and 
+                dest * player < 0 and 
+                (abs(origin) + abs(dest)) == 2
+            ):
+                return True
+        return False
 
     def alpha_beta_search(
         self,
         board: Board,
+        player: int,
+        time_left: Optional[float],
         cutoff: Callable[[int], bool],
         heuristic: Callable[[Board], int]
     ) -> Tuple[int, Action]:
         def max_value(
             board: Board,
+            player: int,
+            time_left: Optional[float],
             alpha: float,
             beta: float,
             depth: int,
             # action: Optional[Action] = None
         ) -> Tuple[int, Optional[Action]]:
-            if cutoff(depth):
-                return (heuristic(board), None)
+            if cutoff(depth, board, player, time_left):
+                return (heuristic(board, player), None)
             if board.is_finished():
                 return (board.get_score(), None)
 
@@ -134,8 +179,10 @@ class MinMaxAgent(Agent):
             m_star = None
 
             for action in board.get_actions():
+                if not board.is_action_valid(action):
+                    continue
                 _board = board.clone()
-                v_child = min_value(_board, alpha, beta, depth + 1)[0]
+                v_child = min_value(_board, player, time_left, alpha, beta, depth + 1)[0]
                 if v_child > v_star:
                     v_star = v_child
                     m_star = action
@@ -146,13 +193,15 @@ class MinMaxAgent(Agent):
 
         def min_value(
             board: Board,
+            player: int,
+            time_left: Optional[float],
             alpha: float,
             beta: float,
             depth: int,
             # action: Optional[Action] = None
         ) -> Tuple[int, Optional[Action]]:
-            if cutoff(depth):
-                return (heuristic(board), None)
+            if cutoff(depth, board, player, time_left):
+                return (heuristic(board, player), None)
             if board.is_finished():
                 return (board.get_score(), None)
 
@@ -161,8 +210,10 @@ class MinMaxAgent(Agent):
             m_star = None
 
             for action in board.get_actions():
+                if not board.is_action_valid(action):
+                    continue
                 _board = board.clone()
-                v_child = max_value(_board, alpha, beta, depth + 1)[0]
+                v_child = max_value(_board, player, time_left, alpha, beta, depth + 1)[0]
                 if v_child < v_star:
                     v_star = v_child
                     m_star = action
@@ -170,7 +221,7 @@ class MinMaxAgent(Agent):
                 if v_star <= alpha:
                     break
             return (v_star, m_star)
-        return max_value(board, -math.inf, math.inf, 0)
+        return max_value(board, player, time_left, -math.inf, math.inf, 0)
 
 if __name__ == "__main__":
     agent_main(MinMaxAgent())
