@@ -105,35 +105,51 @@ class MinMaxAgent(Agent):
 
     def _pairs_heuristic(self, board: Board, player: int) -> int:
         score = 0
+        
         clone = board.clone()
         for action in clone.get_actions():
+            #getting the score
             if not clone.is_action_valid(action):
                 continue
             temp = clone.play_action(action)
             _, pre_score = player_scores(clone, player)
             _, next_score = player_scores(temp, player)
-            if next_score - pre_score > 0:
+            if abs(next_score) - abs(pre_score) < 0:
                 score += 5
+
+            
             x, y, dx, dy = action
             origin, dest = clone.m[x][y], clone.m[dx][dy]
 
             # Enemy has tower of 4 and we want to top it off
             if origin * dest == -4 and origin == player:
-                return 10**6
-            
+                return 10000
             # Complete our own tower if possible (save our own tower) (dont return)
-
-            # 2v3, 3v2 ??
+            elif origin * dest == 4 and origin == player:
+                score += 50
             
-            if (origin * player < 0) and (dest * player < 0):
-                score += 5
-                if abs(origin) + abs(dest) == 2:
-                    score += 30
-                    distance = euclidian_distance(dx, 5, dy, 5)
-                    # Group furthest towers together
-                    score += distance ** 100
-                elif 3 <= abs(origin) + abs(dest) < 5:
-                    score += 100
+            # 2v3
+            if origin * dest == -6 and origin == 2*player:
+                score += 40
+            elif origin * dest == 6 and origin == 2*player :
+                score += 35
+
+             # 3v2
+            if origin * dest == -6 and origin == 3*player:
+                score += 40
+            elif origin * dest == 6 and origin == 3*player :
+                score += 35
+
+            
+            # if (origin * player < 0) and (dest * player < 0):
+            #     score += 5
+            #     if abs(origin) + abs(dest) == 2:
+            #         score += 30
+            #         distance = euclidian_distance(dx, 5, dy, 5)
+            #         # Group furthest towers together
+            #         score += distance ** 100
+            #     elif 3 <= abs(origin) + abs(dest) < 5:
+            #         score += 100
 
         return score
 
