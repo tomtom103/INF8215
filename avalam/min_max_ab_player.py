@@ -99,7 +99,7 @@ class MinMaxAgent(Agent):
         return next_action
     
 
-    def cutoff(self, depth: int, board: Board, player: int, time_left: Optional[float]) -> bool:
+    def cutoff(self, depth: int, time_left: Optional[float]) -> bool:
         if time_left is not None and time_left == 0:
             return True
         return depth > 2
@@ -133,32 +133,16 @@ class MinMaxAgent(Agent):
         return score
 
 
-    def heuristic(self, board: Board, player: int) -> int:
+    def heuristic(self, previous: Board, current: Board, player: int) -> int:
         score = 0
-        clone = board.clone()
-
+        clone = current.clone()
+        # TODO: Use previous and current instead
         for action in clone.get_actions():
             x, y, dx, dy = action
-            origin, dest = board.m[x][y], board.m[dx][dy]
+            origin, dest = current.m[x][y], current.m[dx][dy]
             score += self._compute_score(origin, dest, player)
 
         return score
-    
-
-    def _has_remaining_pairs(self, board: Board, player: int) -> bool:
-        clone = board.clone()
-        for action in clone.get_actions():
-            if not clone.is_action_valid(action):
-                continue
-            x, y, dx, dy = action
-            origin, dest = clone.m[x][y], clone.m[dx][dy]
-            if (
-                origin * player < 0 and 
-                dest * player < 0 and 
-                (abs(origin) + abs(dest)) == 2
-            ):
-                return True
-        return False
     
 
     def alpha_beta_search(
@@ -170,28 +154,25 @@ class MinMaxAgent(Agent):
         heuristic: Callable[[Board], int]
     ) -> Tuple[int, Action]:
         def max_value(
-            board: Board,
+            previous: Board,
+            current: Board,
             player: int,
             time_left: Optional[float],
             alpha: float,
             beta: float,
             depth: int,
-            # action: Optional[Action] = None
         ) -> Tuple[int, Optional[Action]]:
-            if cutoff(depth, board, player, time_left):
-                return (heuristic(board, player), None)
-            if board.is_finished():
-                return (board.get_score(), None)
+            if cutoff(depth, time_left):
+                return (heuristic(previous, current, player), None)
+            if current.is_finished():
+                return (current.get_score(), None)
 
 
             v_star = -math.inf
             m_star = None
 
-            for action in board.get_actions():
-                if not board.is_action_valid(action):
-                    continue
-                _board = board.clone()
-                v_child = min_value(_board, player, time_left, alpha, beta, depth + 1)[0]
+            for action in current.get_actions():
+                v_child = min_value(current, current.clone().play_action(action), player, time_left, alpha, beta, depth + 1)[0]
                 if v_child > v_star:
                     v_star = v_child
                     m_star = action
@@ -202,28 +183,24 @@ class MinMaxAgent(Agent):
         
 
         def min_value(
-            board: Board,
+            previous: Board,
+            current: Board,
             player: int,
             time_left: Optional[float],
             alpha: float,
             beta: float,
             depth: int,
-            # action: Optional[Action] = None
         ) -> Tuple[int, Optional[Action]]:
-            if cutoff(depth, board, player, time_left):
-                return (heuristic(board, player), None)
-            if board.is_finished():
-                return (board.get_score(), None)
-
+            if cutoff(depth, time_left):
+                return (heuristic(previous, current, player), None)
+            if current.is_finished():
+                return (current.get_score(), None)
             
             v_star = math.inf
             m_star = None
 
-            for action in board.get_actions():
-                if not board.is_action_valid(action):
-                    continue
-                _board = board.clone()
-                v_child = max_value(_board, player, time_left, alpha, beta, depth + 1)[0]
+            for action in current.get_actions():
+                v_child = max_value(current, current.clone().play_action(action), player, time_left, alpha, beta, depth + 1)[0]
                 if v_child < v_star:
                     v_star = v_child
                     m_star = action
@@ -233,7 +210,7 @@ class MinMaxAgent(Agent):
             return (v_star, m_star)
 
         
-        return max_value(board, player, time_left, -math.inf, math.inf, 0)
+        return max_value(board, board, player, time_left, -math.inf, math.inf, 0)
     
 
 if __name__ == "__main__":
