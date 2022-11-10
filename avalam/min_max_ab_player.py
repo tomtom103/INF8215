@@ -22,7 +22,9 @@ from avalam import *
 from typing import Callable, Tuple, List, Optional
 import numpy as np
 
+
 Action = Tuple[int, int, int, int]
+
 
 def euclidian_distance(x1: int, x2: int, y1: int, y2: int) -> int:
     return round(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
@@ -38,6 +40,7 @@ def player_scores(board: Board, player: int) -> Tuple[int, int]:
         else:
             other_score += abs(value)
     return (my_score, other_score)
+
 
 class MinMaxAgent(Agent):
 
@@ -60,6 +63,7 @@ class MinMaxAgent(Agent):
             not time-limited, time_left is None.
         """
         pass
+    
 
     def play(
         self, 
@@ -93,65 +97,53 @@ class MinMaxAgent(Agent):
         next_action = self.alpha_beta_search(board, player, time_left, self.cutoff, self.heuristic)[1]
         print("Action played: ", next_action)
         return next_action
+    
 
     def cutoff(self, depth: int, board: Board, player: int, time_left: Optional[float]) -> bool:
         if time_left is not None and time_left == 0:
             return True
         return depth > 2
+    
+
+    def _compute_score(self, origin: int, dest: int, player: int) -> int:
+        score = 0
+
+         # Enemy has tower of 4 and we want to top it off
+        if origin * dest == -4 and origin == player:
+            return 10000
+        # Complete our own tower if possible (save our own tower) (dont return)
+        elif origin * dest == 4 and origin == player:
+            score += 50
+
+        if origin == 2 * player:
+            score = score + 40 if origin * dest == -6 else score + 35
+        
+        # 2v3
+        if origin * dest == -6 and origin == 2*player:
+            score += 40
+        elif origin * dest == 6 and origin == 2*player :
+            score += 35
+
+        # 3v2
+        if origin * dest == -6 and origin == 3*player:
+            score += 40
+        elif origin * dest == 6 and origin == 3*player :
+            score += 35
+
+        return score
 
 
     def heuristic(self, board: Board, player: int) -> int:
-        return self._pairs_heuristic(board, player)
-
-    def _pairs_heuristic(self, board: Board, player: int) -> int:
         score = 0
-        
         clone = board.clone()
+
         for action in clone.get_actions():
-            #getting the score
-            if not clone.is_action_valid(action):
-                continue
-            temp = clone.play_action(action)
-            _, pre_score = player_scores(clone, player)
-            _, next_score = player_scores(temp, player)
-            if abs(next_score) - abs(pre_score) < 0:
-                score += 5
-
-            
             x, y, dx, dy = action
-            origin, dest = clone.m[x][y], clone.m[dx][dy]
-
-            # Enemy has tower of 4 and we want to top it off
-            if origin * dest == -4 and origin == player:
-                return 10000
-            # Complete our own tower if possible (save our own tower) (dont return)
-            elif origin * dest == 4 and origin == player:
-                score += 50
-            
-            # 2v3
-            if origin * dest == -6 and origin == 2*player:
-                score += 40
-            elif origin * dest == 6 and origin == 2*player :
-                score += 35
-
-             # 3v2
-            if origin * dest == -6 and origin == 3*player:
-                score += 40
-            elif origin * dest == 6 and origin == 3*player :
-                score += 35
-
-            
-            # if (origin * player < 0) and (dest * player < 0):
-            #     score += 5
-            #     if abs(origin) + abs(dest) == 2:
-            #         score += 30
-            #         distance = euclidian_distance(dx, 5, dy, 5)
-            #         # Group furthest towers together
-            #         score += distance ** 100
-            #     elif 3 <= abs(origin) + abs(dest) < 5:
-            #         score += 100
+            origin, dest = board.m[x][y], board.m[dx][dy]
+            score += self._compute_score(origin, dest, player)
 
         return score
+    
 
     def _has_remaining_pairs(self, board: Board, player: int) -> bool:
         clone = board.clone()
@@ -167,6 +159,7 @@ class MinMaxAgent(Agent):
             ):
                 return True
         return False
+    
 
     def alpha_beta_search(
         self,
@@ -206,6 +199,7 @@ class MinMaxAgent(Agent):
                 if v_star >= beta:
                     break
             return (v_star, m_star)
+        
 
         def min_value(
             board: Board,
@@ -237,7 +231,10 @@ class MinMaxAgent(Agent):
                 if v_star <= alpha:
                     break
             return (v_star, m_star)
+
+        
         return max_value(board, player, time_left, -math.inf, math.inf, 0)
+    
 
 if __name__ == "__main__":
     agent_main(MinMaxAgent())
