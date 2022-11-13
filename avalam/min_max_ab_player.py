@@ -87,13 +87,11 @@ class MinMaxAgent(Agent):
         :return: an action
             eg; (1, 4, 1 , 3) to move tower on cell (1,4) to cell (1,3)
         """
-        print("percept:", percepts)
         print("player:", player)
         print("step:", step)
         print("time left:", time_left if time_left else '+inf')
 
         board = dict_to_board(percepts)
-        print("Board: ", board)
 
         next_action = self.alpha_beta_search(board, player, time_left, self.cutoff, self.heuristic)[1]
         print("Action played: ", next_action)
@@ -103,11 +101,10 @@ class MinMaxAgent(Agent):
     def cutoff(self, depth: int, time_left: Optional[float]) -> bool:
         if time_left is not None and time_left == 0:
             return True
-        return depth > 3
+        return depth == 0
     
 
-    def _compute_tower_score(self, origin: int, dest: int, player: int) -> int:
-        
+    def _compute_tower_score(self, origin: int, dest: int, player: int) -> int:        
         score = 0
 
         #1v4
@@ -139,8 +136,8 @@ class MinMaxAgent(Agent):
         return score
 
     def _make_pairs(self, origin: int, dest: int, player: int) :
-
         score = 0
+
         #randomly choose between making our pairs or opponents pairs
         p = random.random()
 
@@ -159,8 +156,9 @@ class MinMaxAgent(Agent):
         
         return score
         
-    def heuristic(self, board: Board, player: int, action : Action) -> int :
+    def heuristic(self, board: Board, player: int, action : Action, depth: int) -> int :
         score = 0
+
         #Get the score for the board
         score = board.get_score()
 
@@ -176,6 +174,12 @@ class MinMaxAgent(Agent):
 
         #stack opps pairs
         score += self._stack_pairs(origin,dest,player)
+
+        # Depth represents depth left to recurse into
+        # The smaller it is, the deeper we are.
+        # We add a 0.001 bonus to signify that higher score
+        # in less turns is more valuable
+        score *= (1 + 0.001 * depth)
 
         return score * player
     
@@ -198,16 +202,15 @@ class MinMaxAgent(Agent):
             action: Action
         ) -> Tuple[int, Optional[Action]]:
             if cutoff(depth, time_left):
-                return (heuristic(board, player, action), None)
+                return (heuristic(board, player, action, depth), None)
             if board.is_finished():
                 return (board.get_score(), None)
-
 
             v_star = -math.inf
             m_star = None
 
             for action in board.get_actions():
-                v_child = min_value(board.clone().play_action(action), player, time_left, alpha, beta, depth + 1,action)[0]
+                v_child = min_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action)[0]
                 if v_child > v_star:
                     v_star = v_child
                     m_star = action
@@ -227,7 +230,7 @@ class MinMaxAgent(Agent):
             action : Action
         ) -> Tuple[int, Optional[Action]]:
             if cutoff(depth, time_left):
-                return (heuristic(board, player,action), None)
+                return (heuristic(board, player, action, depth), None)
             if board.is_finished():
                 return (board.get_score(), None)
             
@@ -235,7 +238,7 @@ class MinMaxAgent(Agent):
             m_star = None
 
             for action in board.get_actions():
-                v_child = max_value(board.clone().play_action(action), player, time_left, alpha, beta, depth + 1,action)[0]
+                v_child = max_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action)[0]
                 if v_child < v_star:
                     v_star = v_child
                     m_star = action
@@ -245,7 +248,7 @@ class MinMaxAgent(Agent):
             return (v_star, m_star)
 
         
-        return max_value(board, player, time_left, -math.inf, math.inf, 0,[0,2,0,3])
+        return max_value(board, player, time_left, -math.inf, math.inf, 4, [0,2,0,3])
     
 
 if __name__ == "__main__":
