@@ -93,7 +93,7 @@ class MinMaxAgent(Agent):
 
         board = dict_to_board(percepts)
 
-        next_action = self.alpha_beta_search(board, player, time_left, self.cutoff, self.heuristic)[1]
+        next_action = self.alpha_beta_search(board, player, step, time_left, self.cutoff, self.heuristic)[1]
         print("Action played: ", next_action)
         return next_action
     
@@ -155,8 +155,41 @@ class MinMaxAgent(Agent):
             score += 15
         
         return score
+
+    def _end_game(self, origin: int, dest: int, player: int, step: int) -> int:
+        score = 0
+
+        if step / 2 < 10:
+            # Only do this at end game
+            return score
+
+        if origin * dest == 4 and origin == 2*player:
+            # 2 -> 2
+            score += 25
+
+        if origin * dest == -4 and origin == 2*player:
+            # 2 -> -2
+            score += 35
+
+        if origin * dest == 3 and origin == player:
+            # 1 -> 3
+            score += 25
+
+        if origin * dest == -3 and origin == player:
+            # 1 -> -3
+            score += 40
+
+        if origin * dest == 3 and origin == 3*player:
+            # 3 -> 1
+            score += 25
+
+        if origin * dest == -3 and origin == 3*player:
+            # -3 -> 1
+            score += 35
+
+        return score
         
-    def heuristic(self, board: Board, player: int, action : Action, depth: int) -> int :
+    def heuristic(self, board: Board, player: int, action : Action, depth: int, step: int) -> int :
         score = 0
 
         #Get the score for the board
@@ -175,6 +208,9 @@ class MinMaxAgent(Agent):
         #stack opps pairs
         score += self._stack_pairs(origin,dest,player)
 
+        # end game
+        score += self._end_game(origin, dest, player, step)
+
         # Depth represents depth left to recurse into
         # The smaller it is, the deeper we are.
         # We add a 0.001 bonus to signify that higher score
@@ -188,6 +224,7 @@ class MinMaxAgent(Agent):
         self,
         board: Board,
         player: int,
+        step: int,
         time_left: Optional[float],
         cutoff: Callable[[int], bool],
         heuristic: Callable[[Board], int]
@@ -199,10 +236,11 @@ class MinMaxAgent(Agent):
             alpha: float,
             beta: float,
             depth: int,
-            action: Action
+            action: Action,
+            step: int,
         ) -> Tuple[int, Optional[Action]]:
             if cutoff(depth, time_left):
-                return (heuristic(board, player, action, depth), None)
+                return (heuristic(board, player, action, depth, step), None)
             if board.is_finished():
                 return (board.get_score(), None)
 
@@ -210,7 +248,7 @@ class MinMaxAgent(Agent):
             m_star = None
 
             for action in board.get_actions():
-                v_child = min_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action)[0]
+                v_child = min_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action, step + 1)[0]
                 if v_child > v_star:
                     v_star = v_child
                     m_star = action
@@ -227,10 +265,11 @@ class MinMaxAgent(Agent):
             alpha: float,
             beta: float,
             depth: int,
-            action : Action
+            action : Action,
+            step: int,
         ) -> Tuple[int, Optional[Action]]:
             if cutoff(depth, time_left):
-                return (heuristic(board, player, action, depth), None)
+                return (heuristic(board, player, action, depth, step), None)
             if board.is_finished():
                 return (board.get_score(), None)
             
@@ -238,7 +277,7 @@ class MinMaxAgent(Agent):
             m_star = None
 
             for action in board.get_actions():
-                v_child = max_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action)[0]
+                v_child = max_value(board.clone().play_action(action), player, time_left, alpha, beta, depth - 1, action, step + 1)[0]
                 if v_child < v_star:
                     v_star = v_child
                     m_star = action
@@ -248,7 +287,7 @@ class MinMaxAgent(Agent):
             return (v_star, m_star)
 
         
-        return max_value(board, player, time_left, -math.inf, math.inf, 4, [0,2,0,3])
+        return max_value(board, player, time_left, -math.inf, math.inf, 4, [0,2,0,3], step)
     
 
 if __name__ == "__main__":
