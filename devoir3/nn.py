@@ -375,7 +375,7 @@ def gradients(loss, parameters):
     return [Constant(grads[parameter]) for parameter in parameters]
 
 
-def as_scalar(node):
+def as_scalar(node: Node):
     """
     Returns the value of a Node as a standard Python number. This only works
     for nodes with one element (e.g. SquareLoss and SoftmaxLoss, as well as
@@ -384,4 +384,4 @@ def as_scalar(node):
 
     assert isinstance(node, Node), "Input must be a node object, instead has type {!r}".format(type(node).__name__)
     assert node.data.size == 1, "Node has shape {}, cannot convert to a scalar".format(format_shape(node.data.shape))
-    return np.asscalar(node.data)
+    return np.float64(node.data)

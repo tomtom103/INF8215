@@ -1,8 +1,10 @@
 import nn
+import backend
+import numpy as np
 
 
 class PerceptronModel(object):
-    def __init__(self, dimensions):
+    def __init__(self, dimensions: int):
         """
         Initialize a new Perceptron instance.
 
@@ -11,6 +13,7 @@ class PerceptronModel(object):
         For example, dimensions=2 would mean that the perceptron must classify
         2D points.
         """
+        self._dimensions = dimensions
         self.w = nn.Parameter(1, dimensions)
 
     def get_weights(self):
@@ -27,7 +30,6 @@ class PerceptronModel(object):
             x: a node with shape (1 x dimensions)
         Returns: a node containing a single number (the score)
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
         return nn.DotProduct(self.w,x)
 
     def get_prediction(self, x):
@@ -36,13 +38,20 @@ class PerceptronModel(object):
 
         Returns: 1 or -1
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
+        return 1 if nn.as_scalar(self.run(x)) >= 0 else -1
 
-    def train(self, dataset):
+    def train(self, dataset: backend.PerceptronDataset):
         """
         Train the perceptron until convergence.
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
+        converged = False
+        while not converged:
+            converged = True   
+            for x, y in dataset.iterate_once(1):
+                y_hat = self.get_prediction(x)
+                if y_hat != nn.as_scalar(y):
+                    self.w.update(x, nn.as_scalar(y))
+                    converged = False
 
 
 class RegressionModel(object):
@@ -54,7 +63,15 @@ class RegressionModel(object):
 
     def __init__(self):
         # Initialize your model parameters here
-        "*** TODO: COMPLETE HERE FOR QUESTION 2 ***"
+        self.batch_size = 25
+        self.num_hidden_layers = 3
+
+        self.w = nn.Parameter(1, self.num_hidden_layers) # weights 
+        self.b = nn.Parameter(1, self.num_hidden_layers) # biases 
+
+        # Output layers
+        self.w_o = nn.Parameter(self.num_hidden_layers, 1)
+        self.b_o = nn.Parameter(1, 1)
 
     def run(self, x):
         """
@@ -65,7 +82,12 @@ class RegressionModel(object):
         Returns:
             A node with shape (batch_size x 1) containing predicted y-values
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 2 ***"
+        trans = nn.Linear(x, self.w)
+        predicted_y = nn.AddBias(trans, self.b)
+        relu = nn.ReLU(predicted_y)
+
+        trans_o = nn.Linear(relu, self.w_o)
+        return nn.AddBias(trans_o, self.b_o)
 
     def get_loss(self, x, y):
         """
@@ -77,13 +99,30 @@ class RegressionModel(object):
                 to be used for training
         Returns: a loss node
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 2 ***"
+        return nn.SquareLoss(self.run(x), y)
 
-    def train(self, dataset):
+    def train(self, dataset: backend.RegressionDataset):
         """
         Trains the model.
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 2 ***"
+        base_rate = -0.1
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradients = nn.gradients(loss, [self.w, self.b, self.w_o, self.b_o])
+
+                learning_rate = np.minimum(-0.001, base_rate)
+
+                # print(learning_rate)
+                self.w.update(gradients[0], learning_rate)
+                self.b.update(gradients[1], learning_rate)
+                self.w_o.update(gradients[2], learning_rate)
+                self.b_o.update(gradients[3], learning_rate)
+            
+            base_rate += 0.005
+            loss = self.get_loss(nn.Constant(dataset.x), nn.Constant(dataset.y))
+            if nn.as_scalar(loss) < 0.02:
+                return
 
 
 class DigitClassificationModel(object):
