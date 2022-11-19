@@ -4,11 +4,14 @@
 			"path": "devoir1"
 		},
 		{
-			"path": "avalam"
+			"path": "devoir2"
 		},
 		{
-			"path": "devoir2"
-		}
+			"path": "devoir3"
+		},
+		{
+			"path": "avalam"
+		},
 	],
 	"settings": {}
 }
