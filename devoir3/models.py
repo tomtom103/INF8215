@@ -63,11 +63,14 @@ class RegressionModel(object):
 
     def __init__(self):
         # Initialize your model parameters here
-        self.batch_size = 25
+        self.batch_size = 100
         self.num_hidden_layers = 3
 
         self.w = nn.Parameter(1, self.num_hidden_layers) # weights 
         self.b = nn.Parameter(1, self.num_hidden_layers) # biases 
+
+        self.w_m = nn.Parameter(self.num_hidden_layers, self.num_hidden_layers)
+        self.b_m = nn.Parameter(1, self.num_hidden_layers)
 
         # Output layers
         self.w_o = nn.Parameter(self.num_hidden_layers, 1)
@@ -86,7 +89,11 @@ class RegressionModel(object):
         predicted_y = nn.AddBias(trans, self.b)
         relu = nn.ReLU(predicted_y)
 
-        trans_o = nn.Linear(relu, self.w_o)
+        trans_m= nn.Linear(relu, self.w_m)
+        predicted_y = nn.AddBias(trans_m, self.b_m)
+        relu = nn.ReLU(predicted_y)
+
+        trans_o = nn.Linear(relu,self.w_o)
         return nn.AddBias(trans_o, self.b_o)
 
     def get_loss(self, x, y):
@@ -111,7 +118,7 @@ class RegressionModel(object):
                 loss = self.get_loss(x, y)
                 gradients = nn.gradients(loss, [self.w, self.b, self.w_o, self.b_o])
 
-                learning_rate = np.minimum(-0.001, base_rate)
+                learning_rate = np.minimum(-0.003, base_rate)
 
                 # print(learning_rate)
                 self.w.update(gradients[0], learning_rate)
@@ -119,7 +126,7 @@ class RegressionModel(object):
                 self.w_o.update(gradients[2], learning_rate)
                 self.b_o.update(gradients[3], learning_rate)
             
-            base_rate += 0.005
+            base_rate += 0.01
             loss = self.get_loss(nn.Constant(dataset.x), nn.Constant(dataset.y))
             if nn.as_scalar(loss) < 0.02:
                 return
