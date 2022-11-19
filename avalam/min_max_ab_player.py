@@ -20,7 +20,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 import math
 from avalam import *
 from typing import Callable, Tuple, List, Optional
-import numpy as np
 import random
 
 
