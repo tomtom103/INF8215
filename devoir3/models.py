@@ -63,7 +63,7 @@ class RegressionModel(object):
 
     def __init__(self):
         # Initialize your model parameters here
-        self.batch_size = 100
+        self.batch_size = 200
         self.num_hidden_layers = 3
 
         self.w = nn.Parameter(1, self.num_hidden_layers) # weights 
@@ -116,15 +116,17 @@ class RegressionModel(object):
         while True:
             for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
-                gradients = nn.gradients(loss, [self.w, self.b, self.w_o, self.b_o])
+                gradients = nn.gradients(loss, [self.w, self.b, self.w_m, self.b_m,self.w_o, self.b_o])
 
-                learning_rate = np.minimum(-0.003, base_rate)
+                learning_rate = np.minimum(-0.004, base_rate)
 
                 # print(learning_rate)
                 self.w.update(gradients[0], learning_rate)
                 self.b.update(gradients[1], learning_rate)
-                self.w_o.update(gradients[2], learning_rate)
-                self.b_o.update(gradients[3], learning_rate)
+                self.w_m.update(gradients[2], learning_rate)
+                self.b_m.update(gradients[3], learning_rate)
+                self.w_o.update(gradients[4], learning_rate)
+                self.b_o.update(gradients[5], learning_rate)
             
             base_rate += 0.01
             loss = self.get_loss(nn.Constant(dataset.x), nn.Constant(dataset.y))
@@ -150,6 +152,7 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
+
 
     def run(self, x):
         """
