@@ -64,7 +64,7 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         self.batch_size = 200
-        self.num_hidden_layers = 3
+        self.num_hidden_layers = 9
 
         self.w = nn.Parameter(1, self.num_hidden_layers) # weights 
         self.b = nn.Parameter(1, self.num_hidden_layers) # biases 
@@ -154,10 +154,10 @@ class DigitClassificationModel(object):
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
         self.batch_size = 200
 
-        self.w = nn.Parameter(784, 100) # weights 
-        self.b = nn.Parameter(1,100)
+        self.w = nn.Parameter(784, 150) # weights 
+        self.b = nn.Parameter(1,150)
 
-        self.w_m = nn.Parameter(100,10)
+        self.w_m = nn.Parameter(150,10)
         self.b_m = nn.Parameter(1,10)
 
         self.w_o= nn.Parameter(10, 10)
@@ -215,7 +215,7 @@ class DigitClassificationModel(object):
         Trains the model.
         """
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
-        learning_rate = -0.135
+        learning_rate = -0.25
         for x, y in dataset.iterate_forever(self.batch_size):
             loss = self.get_loss(x, y)
             gradients = nn.gradients(loss, [self.w,self.b,self.w_m,self.b_m,self.w_o,self.b_o])
@@ -225,6 +225,8 @@ class DigitClassificationModel(object):
             self.b_o.update(gradients[3],learning_rate)
             self.w_o.update(gradients[4], learning_rate)
             self.b_o.update(gradients[5], learning_rate)
+
+            learning_rate += 0.0001
         
             if dataset.get_validation_accuracy() >= 0.97 :
                 return
