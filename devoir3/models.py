@@ -152,12 +152,15 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
-        self.batch_size = 100
+        self.batch_size = 200
 
-        self.w = nn.Parameter(784, 80) # weights 
-        self.b = nn.Parameter(1,80)
+        self.w = nn.Parameter(784, 100) # weights 
+        self.b = nn.Parameter(1,100)
 
-        self.w_o= nn.Parameter(80, 10)
+        self.w_m = nn.Parameter(100,10)
+        self.b_m = nn.Parameter(1,10)
+
+        self.w_o= nn.Parameter(10, 10)
         self.b_o = nn.Parameter(1,10)
 
 
@@ -182,6 +185,11 @@ class DigitClassificationModel(object):
         trans = nn.Linear(x,self.w)
         y_1 = nn.AddBias(trans,self.b)
         relu = nn.ReLU(y_1)
+
+        trans = nn.Linear(relu,self.w_m)
+        y_2 = nn.AddBias(trans,self.b_m)
+        relu = nn.ReLU(y_2)
+     
         trans = nn.Linear(relu,self.w_o)
         return nn.AddBias(trans, self.b_o)
 
@@ -207,14 +215,16 @@ class DigitClassificationModel(object):
         Trains the model.
         """
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
-        learning_rate = -0.1
-        for x, y in dataset.iterate_once(self.batch_size):
+        learning_rate = -0.135
+        for x, y in dataset.iterate_forever(self.batch_size):
             loss = self.get_loss(x, y)
-            gradients = nn.gradients(loss, [self.w,self.b,self.w_o,self.b_o])
+            gradients = nn.gradients(loss, [self.w,self.b,self.w_m,self.b_m,self.w_o,self.b_o])
             self.w.update(gradients[0], learning_rate)
             self.b.update(gradients[1], learning_rate)
-            self.w_o.update(gradients[2], learning_rate)
-            self.b_o.update(gradients[3], learning_rate)
+            self.w_m.update(gradients[2], learning_rate)
+            self.b_o.update(gradients[3],learning_rate)
+            self.w_o.update(gradients[4], learning_rate)
+            self.b_o.update(gradients[5], learning_rate)
         
             if dataset.get_validation_accuracy() >= 0.97 :
                 return
