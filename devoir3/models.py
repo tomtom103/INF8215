@@ -63,7 +63,7 @@ class RegressionModel(object):
 
     def __init__(self):
         # Initialize your model parameters here
-        self.batch_size = 200
+        self.batch_size = 100
         self.num_hidden_layers = 9
 
         self.w = nn.Parameter(1, self.num_hidden_layers) # weights 
@@ -151,19 +151,19 @@ class DigitClassificationModel(object):
 
     def __init__(self):
         # Initialize your model parameters here
-        "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
-        self.batch_size = 200
+        self.batch_size = 100
 
-        self.w = nn.Parameter(784, 150) # weights 
-        self.b = nn.Parameter(1,150)
+        self.w = nn.Parameter(784, 256) # weights 
+        self.b = nn.Parameter(1, 256) # biases
 
-        self.w_m = nn.Parameter(150,10)
-        self.b_m = nn.Parameter(1,10)
+        self.w_2 = nn.Parameter(256, 128)
+        self.b_2 = nn.Parameter(1, 128)
 
-        self.w_o= nn.Parameter(10, 10)
-        self.b_o = nn.Parameter(1,10)
+        self.w_3 = nn.Parameter(128, 64)
+        self.b_3 = nn.Parameter(1, 64)
 
-
+        self.w_o= nn.Parameter(64, 10)
+        self.b_o = nn.Parameter(1, 10)
 
 
     def run(self, x):
@@ -180,18 +180,21 @@ class DigitClassificationModel(object):
             A node with shape (batch_size x 10) containing predicted scores
                 (also called logits)
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
 
-        trans = nn.Linear(x,self.w)
-        y_1 = nn.AddBias(trans,self.b)
-        relu = nn.ReLU(y_1)
+        trans1 = nn.Linear(x, self.w)
+        y_1 = nn.AddBias(trans1, self.b)
+        relu1 = nn.ReLU(y_1)
 
-        trans = nn.Linear(relu,self.w_m)
-        y_2 = nn.AddBias(trans,self.b_m)
-        relu = nn.ReLU(y_2)
+        trans2 = nn.Linear(relu1, self.w_2)
+        y_2 = nn.AddBias(trans2, self.b_2)
+        relu2 = nn.ReLU(y_2)
+
+        trans3 = nn.Linear(relu2, self.w_3)
+        y_3 = nn.AddBias(trans3, self.b_3)
+        relu3 = nn.ReLU(y_3)
      
-        trans = nn.Linear(relu,self.w_o)
-        return nn.AddBias(trans, self.b_o)
+        trans4 = nn.Linear(relu3, self.w_o)
+        return nn.AddBias(trans4, self.b_o)
 
 
     def get_loss(self, x, y):
@@ -207,27 +210,25 @@ class DigitClassificationModel(object):
             y: a node with shape (batch_size x 10)
         Returns: a loss node
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
         return nn.SoftmaxLoss(self.run(x),y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
-        learning_rate = -0.25
-        for x, y in dataset.iterate_forever(self.batch_size):
-            loss = self.get_loss(x, y)
-            gradients = nn.gradients(loss, [self.w,self.b,self.w_m,self.b_m,self.w_o,self.b_o])
-            self.w.update(gradients[0], learning_rate)
-            self.b.update(gradients[1], learning_rate)
-            self.w_m.update(gradients[2], learning_rate)
-            self.b_o.update(gradients[3],learning_rate)
-            self.w_o.update(gradients[4], learning_rate)
-            self.b_o.update(gradients[5], learning_rate)
-
-            learning_rate += 0.0001
-        
-            if dataset.get_validation_accuracy() >= 0.97 :
-                return
-
+        loss = float('inf')
+        learning_rate = -0.1
+        accuracy = 0
+        while accuracy < .97:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradients = nn.gradients(loss, [self.w,self.b,self.w_2,self.b_2,self.w_3,self.b_3,self.w_o,self.b_o])
+                self.w.update(gradients[0], learning_rate)
+                self.b.update(gradients[1], learning_rate)
+                self.w_2.update(gradients[2], learning_rate)
+                self.b_2.update(gradients[3],learning_rate)
+                self.w_3.update(gradients[4], learning_rate)
+                self.b_3.update(gradients[5], learning_rate)
+                self.w_o.update(gradients[6], learning_rate)
+                self.b_o.update(gradients[7], learning_rate)
+            accuracy = dataset.get_validation_accuracy()
