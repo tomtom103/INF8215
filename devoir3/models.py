@@ -152,6 +152,7 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         self.batch_size = 100
+        self.learning_rate = -0.1
 
         self.w = nn.Parameter(784, 256) # weights 
         self.b = nn.Parameter(1, 256) # biases
@@ -217,18 +218,17 @@ class DigitClassificationModel(object):
         Trains the model.
         """
         loss = float('inf')
-        learning_rate = -0.1
         accuracy = 0
         while accuracy < .97:
             for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
                 gradients = nn.gradients(loss, [self.w,self.b,self.w_2,self.b_2,self.w_3,self.b_3,self.w_o,self.b_o])
-                self.w.update(gradients[0], learning_rate)
-                self.b.update(gradients[1], learning_rate)
-                self.w_2.update(gradients[2], learning_rate)
-                self.b_2.update(gradients[3],learning_rate)
-                self.w_3.update(gradients[4], learning_rate)
-                self.b_3.update(gradients[5], learning_rate)
-                self.w_o.update(gradients[6], learning_rate)
-                self.b_o.update(gradients[7], learning_rate)
+                self.w.update(gradients[0], self.learning_rate)
+                self.b.update(gradients[1], self.learning_rate)
+                self.w_2.update(gradients[2], self.learning_rate)
+                self.b_2.update(gradients[3], self.learning_rate)
+                self.w_3.update(gradients[4], self.learning_rate)
+                self.b_3.update(gradients[5], self.learning_rate)
+                self.w_o.update(gradients[6], self.learning_rate)
+                self.b_o.update(gradients[7], self.learning_rate)
             accuracy = dataset.get_validation_accuracy()
